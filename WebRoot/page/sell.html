@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+    <title>蜗牛进销存-销售出库</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/bootstrap.css"/>
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/sitemain.css"/>
+    <script type="text/javascript" src="#(basePath)/library/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="#(basePath)/library/js/bootstrap.js"></script>
+    <script type="text/javascript" src="#(basePath)/library/js/bootstrap-typeahead.js"></script>
+    <script>
+	    $(document).ready(function() {
+	    	// 自动完成货号/编码的输入
+			$("#customerphone").typeahead({
+				source: function (query, process) {
+			        return $.ajax({
+			            url: '#(basePath)/customer/phone',
+			            type: 'post',
+			            data: {'query': query},
+			            dataType: 'json',
+			            success: function (result) {
+			                var resultList = result.map(function(item) {
+	                            var aItem = { customerphone: item.customerphone };
+	                            return JSON.stringify(aItem);
+	                        });
+			                return process(resultList);                                           
+			            }
+			        });
+				},
+				highlighter: function (obj) {
+		            var item = JSON.parse(obj);
+		            var query = this.query.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, '\\$&');
+		            return item.customerphone.replace(new RegExp('(' + query + ')', 'ig'), function ($1, match) {
+		                return '<strong>' + match + '</strong>'
+		            });
+		        },
+				updater: function (obj) {
+		            var item = JSON.parse(obj);
+		            return item.customerphone;
+		        },
+		        items: 10
+			});
+	    });	
+    	
+    	// 通过条码查询商品信息
+	    function queryByBarCode() {
+	    	var param = "barcode=" + $.trim($("#barcode").val());
+    		$.post("#(basePath)/sell/barcode", param, function(data) {
+    			// alert(JSON.stringify(data));
+    			if (data.length < 1) {
+    				showAlert("错误提示", "你输入的条码不正确，或无此库存.");
+    				$("#barcode").focus();
+    				return;
+    			}
+    			var unitprice = data[0].unitprice;
+    			
+    			var discountRatio = data[0].createtime.split("##")[2];
+    			$("#creditratio").val(data[0].createtime.split("##")[1]);
+    			
+    			var discountRatioInput = "<input type='text' value='" + discountRatio + "' style='width:60px' onkeypress='if(event.keyCode==13){this.blur();}' onblur='changeDiscountRatio(this)'/>";
+    			var buyCountInput = "<button onclick='buyCountMinus(this)' style='width:30px; height:32px;'>-</button>" +
+    					"<input type='text' value='1' class='buycount' readonly style='width:40px; height:30px;background-color:#eee;border:0px;text-align:center;'/>" + 
+    					"<button onclick='buyCountPlus(this)' style='width:30px; height:32px;'>+</button>";
+    			var buyListData = "<tr><td>" + data[0].barcode + "</td>" +
+    								"<td>" + data[0].goodsserial + "</td>" +
+    								"<td>" + data[0].goodsname + "</td>" +
+    								"<td><select id='goodssizeList'>" + data[0].createtime.split("##")[0] + "</select></td>" +
+    								"<td class='unitprice'>" + data[0].unitprice + "</td>" +
+    								"<td class='discountratio'>" + discountRatioInput + "</td>" +
+    								"<td class='discountprice'>" + (data[0].unitprice * discountRatio/100).toFixed(2) + "</td>" +
+    								"<td class='buycountInput'>" + buyCountInput + "</td>" +
+    								"<td class='subtotal'>" + (data[0].unitprice * discountRatio/100).toFixed(2) + "</td>" +
+    								"<td><a href='#' onclick=removeGoods(this)>移除</a></td></tr>";
+    			$("#goodslist").append(buyListData);
+    			
+    			calcTempTotal();
+    			
+    			$("#barcode").val("");
+    			$("#barcode").focus();
+    		});
+	    }
+	    
+    	// 点击-号减少商品数量，并更新小计价格和总价
+    	function buyCountMinus(obj) {
+			var buycount = parseInt($(obj).siblings(".buycount").val());
+			if (buycount > 1) {
+				$(obj).siblings(".buycount").val(buycount-1);
+			}
+			buycount = parseInt($(obj).siblings(".buycount").val());
+			$(obj).parent().siblings(".subtotal").html((buycount * $(obj).parent().siblings(".discountprice").html()).toFixed(2));
+			calcTempTotal();
+		}
+		
+    	// 点击+号增加商品数量，并更新小计价格和总价，暂时不提供库存检查功能
+		function buyCountPlus(obj) {
+			var buycount = parseInt($(obj).siblings(".buycount").val());
+			$(obj).siblings(".buycount").val(buycount+1);
+			buycount = parseInt($(obj).siblings(".buycount").val());
+			$(obj).parent().siblings(".subtotal").html((buycount * $(obj).parent().siblings(".discountprice").html()).toFixed(2));
+			calcTempTotal();
+		}
+		
+		// 修改折扣，并更新小计价格和总价
+		function changeDiscountRatio(obj) {
+			var baseratio = $(obj).val();
+			
+			if (!baseratio.match(/^\d{1,3}$/)) {
+				showAlert("错误提示", "你输入的折扣比例不是有效数字，请重新输入.");
+				$(obj).focus();
+				return;
+			}
+			
+			var lines = 0;
+			$("#goodslist tr").each(function(){
+				lines++;
+			});
+			
+			if (lines < 2 || !confirm("是否统一修改折扣比例？")) {
+				var unitprice = $(obj).parent().siblings(".unitprice").text();
+				var discountprice = $(obj).parent().siblings(".discountprice");
+				var subtotal = $(obj).parent().siblings(".subtotal");
+				var buycount = $(obj).parent().siblings(".buycountInput").children(".buycount");
+				
+				discountprice.html(($(obj).val() * unitprice / 100).toFixed(2));
+				subtotal.html((parseInt(buycount.val()) * parseFloat(discountprice.html())).toFixed(2));
+			}
+			else {
+				$("#goodslist tr").each(function(){
+					var unitprice = $(this).find("td:eq(4)").text();
+					
+					$(this).find("td:eq(5) input").val(baseratio);
+					
+					$(this).find("td:eq(6)").text((unitprice * baseratio / 100).toFixed(2));
+					
+					var discountprice = $(this).find("td:eq(6)").text();
+					var buyquantity = $(this).find("td:eq(7) input").val();
+					$(this).find("td:eq(8)").text((buyquantity * discountprice).toFixed(2));
+				});
+			}
+			
+			calcTempTotal();
+		}
+		
+		// 移除商品，并更新小计价格和总价
+		function removeGoods(obj) {
+			$(obj).parent().parent().children().remove();
+			calcTempTotal();
+		}
+		
+		// 根据表格的行计算总价
+		function calcTempTotal() {
+			var subtotal = document.getElementsByClassName("subtotal");
+			var temptotal = 0;
+			for (var i=0; i<subtotal.length; i++) {
+				temptotal += parseFloat(subtotal[i].innerHTML);
+			}
+			$("#totalbuycount").html(subtotal.length);
+			$("#tempbuyprice").html(temptotal.toFixed(2));
+			$("#finaltotalprice").html(parseInt(temptotal));
+			
+			calcCredit();
+		}
+		
+		// 根据客户手机号码查询积分
+		function customerQueryByPhone() {		
+			var param = "customerphone=" + $("#customerphone").val();
+			if ($("#customerphone").val().length < 1) {
+				$("#customerphone").focus();
+				return;
+			}
+			
+			/*
+			if (!$("#customerphone").val().match(/1[3578]\d{9}/)) {
+				alert("你输入的电话号码格式不正确.");
+				$("#customerphone").focus();
+				return;
+			}
+			*/
+			
+			$.post("#(basePath)/customer/query", param, function(data){
+				if (data.length < 1) {
+					// alert("查询的会员不存在，将自动为你新增该会员，请确认初始积分.");
+					$("#oldcredit").attr("readonly", false);
+					$("#oldcreditlabel").html("初始积分：");
+					#if(session.initcredit == null || session.initcredit == 0)
+					$("#oldcredit").val("0");
+					#else
+					$("#oldcredit").val(#(session.initcredit));
+					#end
+					$("#oldcredit").focus();
+				}
+				else {
+					$("#oldcredit").attr("readonly", true);
+					$("#oldcredit").val(data[0].credittotal);
+				}
+			});
+		}
+		
+		function changeCreditRatio() {
+			if (isNaN($("#creditratio").val())) {
+				showAlert("错误提示", "你输入的积分倍率不是一个有效的数字.");
+				$("#creditratio").focus();
+				return;
+			}
+			calcCredit();
+		}
+		
+		function inputTicketType() {
+			$("#ticketsum").focus();
+		}
+		
+		function inputTicketSum() {
+			if (isNaN($("#ticketsum").val())) {
+				showAlert("错误提示", "你输入的优惠金额不是一个有效的数字.");
+				$("#ticketsum").focus();
+				return;
+			}
+			if (parseInt($("#ticketsum").val()) > parseInt($("#tempbuyprice").html())) {
+				showAlert("错误提示", "你输入的优惠金额过高，无法进行结账处理.");
+				$("#ticketsum").focus();
+				return;
+			}
+			calcCredit();
+		}
+		
+		function inputOldCredit() {
+			if (isNaN($("#oldcredit").val())) {
+				showAlert("错误提示", "你输入的优惠金额不是一个有效的数字.");
+				$("#oldcredit").focus();
+				return;
+			}
+		}
+		
+		function calcCredit() {
+			var ticketsum = $("#ticketsum").val();
+			var ratio = $("#creditratio").val();
+			var tempbuyprice = $("#tempbuyprice").html();
+			var credit = parseInt((tempbuyprice - ticketsum) * ratio);
+			$("#newcredit").val(credit);
+			$("#finaltotalprice").html(parseInt((tempbuyprice - ticketsum)));
+			$("#submit").focus();
+		}
+
+		function confirmToPay() {
+			// 获取到本次结账需要用到的值
+			var customerphone = $("#customerphone").val();
+			var paymethod = $("#paymethod").val();
+			var creditratio = $("#creditratio").val();
+			var oldcredit = $("#oldcredit").val();
+			var creditsum = $("#newcredit").val();
+			var tickettype = $("#tickettype").val();
+			var ticketsum = $("#ticketsum").val();
+			var finaltotalprice = $("#finaltotalprice").html();
+			
+			if (customerphone.length < 1) {
+				if (!confirm("本次结账没有提供会员信息，请确认是否必须结账？")) {
+					return;
+				}
+				customerphone = "0";
+			}
+			
+			// 二次确认 
+			if (!confirm("请确认你已经真实收到【" + paymethod + "】支付金额：" + finaltotalprice + "元。")) {
+				return;
+			}
+			
+			// 更新本次销售汇总信息表sellsum
+			var paramSum = "customerphone=" + customerphone + "&paymethod=" + paymethod + 
+						   "&totalprice=" + finaltotalprice	+ "&creditratio=" + creditratio +
+						   "&creditsum=" + creditsum + "&tickettype=" + tickettype + 
+						   "&ticketsum=" + ticketsum + "&oldcredit=" + oldcredit;
+			$.post("#(basePath)/sell/summary", paramSum, function(data){
+				if (isNaN(data)) {
+					showAlert("错误提示", "结账过程遇到问题，请联系管理员。");
+					return;
+				}
+				// 如果汇总信息更新成功，则继续更新明细信息
+				$("#goodslist tr").each(function(i){
+					var sellsumid = data;
+					var barcode = $(this).find("td:eq(0)").text();
+					var goodsserial = $(this).find("td:eq(1)").text();
+					var goodsname = $(this).find("td:eq(2)").text();
+					var goodssize = $(this).find("td:eq(3) select").val();
+					var unitprice = $(this).find("td:eq(4)").text();
+					var discountratio = $(this).find("td:eq(5) input").val();
+					var discountprice = $(this).find("td:eq(6)").text();
+					var buyquantity = $(this).find("td:eq(7) input").val();
+					var subtotal = $(this).find("td:eq(8)").text();
+					
+					var paramDetail = "sellsumid=" + sellsumid + "&barcode=" + barcode + 
+							"&goodsserial=" + goodsserial + "&goodsname=" + goodsname + 
+							"&goodssize=" + goodssize + "&unitprice=" + unitprice + 
+							"&discountratio=" + discountratio + "&discountprice=" + discountprice + 
+							"&buyquantity=" + buyquantity + "&subtotal=" + subtotal;
+					$.post("#(basePath)/sell/detail", paramDetail, function(data){
+						if (!data.match("pay-successful")) {
+							showAlert("错误提示", "结账过程遇到问题，请联系管理员。");
+							return;
+						}
+					});
+				});
+				showAlert("信息提示", "本次销售过程成功完成，请再次确认收款金额.");
+				location.href = "sell";
+			});
+		}
+    </script>
+</head>
+<body>
+
+#include("header.html")
+
+<div class="container" style="background-color: whitesmoke;">
+    <div class="row">
+        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="padding: 30px 0px;">
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+                <form class="form-inline">
+                    <label for="barcode">请扫描商品条码：</label>
+                    <input type="text" id="barcode" class="form-control" placeholder="条码在此输入" onkeypress="if(event.keyCode==13){queryByBarCode();}"/>
+                    <button type="button" class="form-control btn-primary" onclick="queryByBarCode()"><span class="glyphicon glyphicon-ok"></span> 确认</button>
+                    <input type="text" class="form-control" style="display: none;" />
+                </form>
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" style="text-align: right">
+                <a href="store" onclick="">添加新商品</a>&nbsp;&nbsp;&nbsp;
+                <a href="sell" onclick="">清空所购商品</a>
+            </div>
+        </div>
+    </div>
+    <div class="row" style="padding: 10px;">
+        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="padding: 10px;background-color: #FFFFFF">
+            <table class="table table-responsive">
+                <thead style="font-weight: bold">
+                    <tr>
+                        <td>条码</td>
+                        <td>货号</td>
+                        <td>品名</td>
+                        <td>尺码</td>
+                        <td>单价</td>
+                        <td>折扣</td>
+                        <td>折后单价</td>
+                        <td>数量</td>
+                        <td>小计</td>
+                        <td>操作</td>
+                    </tr>
+                </thead>
+                <tbody id="goodslist"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="padding: 30px 10px;">
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+                共&nbsp;<span id="totalbuycount" style="font-size: 20px; color: red">0</span>&nbsp;件商品
+            </div>
+            <form class="form-inline">
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" style="text-align: right">
+                                        优惠前应收款&nbsp;<span id="tempbuyprice" style="font-size: 22px; color: red">0</span>&nbsp;元
+            </div>
+            </form>
+        </div>
+    </div>
+
+    <!--没确认之前隐藏-->
+    <div id="vipsell" class="row" style="padding: 30px 10px; ">
+        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="padding: 20px 10px;background-color: #ffffff">
+            <form class="form-inline">
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6">
+                <label for="paymethod">收款方式：</label>
+                <select id="paymethod" class="form-control" style="width: 180px;">
+                    <option value="现金">现金</option>
+                    <option value="刷卡">刷卡</option>
+                    <option value="微信">微信</option>
+                    <option value="支付宝">支付宝</option>
+                    <option value="其它">其它</option>
+                </select>
+                </div>
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" style="text-align: right">
+                    <label for="customerphone">请输入会员电话：</label>
+                    <input type="text" id="customerphone" class="form-control" data-provide="typeahead" autocomplete="off" onkeypress="if(event.keyCode==13){this.blur();}" onblur="customerQueryByPhone()"/>
+                    <button type="button" class="form-control btn-primary" onclick="customerQueryByPhone()"><span class="glyphicon glyphicon-search"></span> 查询会员信息</button>
+                    <input type="text" class="form-control" style="display: none;" />
+                </div>
+            </form>
+        </div>
+        <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="padding: 10px;background-color: #ffffff">
+            <form class="form-inline">
+                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                    <label for="oldcredit" id="oldcreditlabel">已有积分：</label>
+                    <input type="text" value="0" id="oldcredit" class="form-control" readonly onkeypress="if(event.keyCode==13){this.blur();}" onblur="inputOldCredit()"/>
+                </div>
+                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="text-align: center">
+                    <label for="newcredit">本次新增积分：</label>
+                    <input type="text" id="newcredit" class="form-control" readonly />
+                </div>
+                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="text-align: right">
+                    <label for="ratio">积分倍数：</label>
+                    <input type="text" value="1.0" id="creditratio" onkeypress="if(event.keyCode==13){this.blur();}" onblur="changeCreditRatio()" class="form-control"/>
+                </div>
+                
+                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="background-color: #ffffff">
+                    <hr/>
+                </div>
+
+                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4">
+                    <label for="tickettype">优惠券编号或原因：</label>
+                    <input type="text" id="tickettype" value="无" onkeypress="if(event.keyCode==13){this.blur();}" onblur="inputTicketType()" class="form-control"/>
+                </div>
+                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="text-align: center">
+                    <label for="ticketsum">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;优惠金额：</label>
+                    <input type="text" id="ticketsum" value="0" onkeypress="if(event.keyCode==13){this.blur();}" onblur="inputTicketSum()" class="form-control"/>
+                </div>
+                <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="text-align: right; ">
+                    最终收款金额：&nbsp;&nbsp;<span id="finaltotalprice" style="font-size: 36px; color: red; font-weight: bold;">0</span>&nbsp;&nbsp;元
+                </div>
+				
+				<div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="float:right; padding: 20px 10px; text-align: right">
+                    <input type="button" id="submit" class="form-control btn-block btn-primary" value="确认收款" onclick="confirmToPay()"/>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+#include("footer.html")
+
+</body>
+</html>

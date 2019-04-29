@@ -1,0 +1,46 @@
+body {
+    margin: 0px;
+    background-color: #eeeeee;
+    font-size: 16px;
+    font-family: 微软雅黑,幼圆,宋体,Verdana;
+}
+div {
+    border-radius: 5px;
+}
+img {
+    border-radius: 5px;
+}
+td {
+    vertical-align: middle;
+}
+td img {
+    vertical-align: middle;
+}
+.header {
+    border-top: solid 3px black;
+    border-radius: 0px
+}
+.footer {
+    background-color: #333333;
+    height: 100px;
+    margin-top: 20px;
+    border-radius: 0px;
+    color: white;
+    line-height: 40px;
+    font-size: 16px;
+}
+.footer .left {
+    margin: 10px 0px;
+}
+.footer .center {
+    margin: 10px 0px;
+    text-align: center;
+}
+.footer .right {
+    margin: 10px 0px;
+    text-align: right;
+}
+.mydialog {
+	margin: auto;
+	margin-top: 120px;
+}

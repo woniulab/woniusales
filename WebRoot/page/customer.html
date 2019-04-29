@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+    <title>蜗牛进销存-会员管理</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/bootstrap.css"/>
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/bootstrap-theme.css"/>
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/sitemain.css"/>
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/bootstrap-datetimepicker.css"/>
+    <script type="text/javascript" src="#(basePath)/library/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="#(basePath)/library/js/bootstrap.js"></script>
+    <script type="text/javascript" src="#(basePath)/library/js/bootstrap-datetimepicker.min.js"></script>
+    <script type="text/javascript" src="#(basePath)/library/js/bootstrap-datetimepicker.zh-CN.js"></script>
+    <script>
+   	 	var pageIndex = 1;	// 定义当前分页的初始页码
+    
+	    $(document).ready(function(){
+	    	Date.prototype.format = function (fmt) { //author: meizz 
+	    	    var o = {
+	    	        "M+": this.getMonth() + 1, //月份 
+	    	        "d+": this.getDate(), //日 
+	    	        "h+": this.getHours(), //小时 
+	    	        "m+": this.getMinutes(), //分 
+	    	        "s+": this.getSeconds(), //秒 
+	    	        "q+": Math.floor((this.getMonth() + 3) / 3), //季度 
+	    	        "S": this.getMilliseconds() //毫秒 
+	    	    };
+	    	    if (/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+	    	    for (var k in o)
+	    	    if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+	    	    return fmt;
+	    	}
+	    	
+	    	$('#childdate').datetimepicker({
+	    	    autoclose: true,
+	    	    format: 'yyyy-mm-dd',
+	    	    todayBtn: 'linked',
+	    	    language: 'zh-CN',
+	    	    startView: 'month',
+	    	    minView: 'month'
+	    	});
+	    	
+	    	$('#childdate').val(new Date().format("yyyy-MM-dd"));
+	    });
+	    
+	    function addCustomer() {
+	    	if ($.trim($("#customerphone").val()).length < 1) {
+	    		showAlert("错误提示", "请输入客户的电话号码.");
+	    		$("#customerphone").focus();
+	    		return;
+	    	}
+	    	
+	    	var param = "customername=" + $.trim($("#customername").val()) +
+	    				"&customerphone=" + $.trim($("#customerphone").val()) +
+	    				"&childsex=" + $.trim($("#childsex").val()) +
+	    				"&childdate=" + $.trim($("#childdate").val()) +
+	    				"&creditkids=" + $.trim($("#creditkids").val()) +
+	    				"&creditcloth=" + $.trim($("#creditcloth").val());
+	    	$.post("#(basePath)/customer/add", param, function(data){
+	    		if (data == "add-successful") {
+	    			showAlert("信息提示", "新增客户信息成功.");
+	    			location.href = "customer";
+	    		}
+	    		else if (data == "already-added") {
+	    			showAlert("错误提示", "该客户信息已经存在，请勿重复添加.");
+	    		}
+	    		else {
+	    			showAlert("错误提示", "新增客户信息失败，请联系管理员.");
+	    		}
+	    	});
+	    }
+	    
+	    function searchCustomer(pageType) {
+	    	$("#customerlist").empty();
+	    	
+	    	pageIndex = pageIndex + pageType;
+	    	if (pageIndex <= 1) {
+	    		pageIndex = 1;
+	    	}
+	    	
+	    	var param = "customerphone=" + $.trim($("#customerphone").val()) +
+	    				"&page=" + pageIndex;
+	    	$.post("#(basePath)/customer/search", param, function(data){
+	    		for (var i=0; i<data.length; i++) {
+	    			var tbodyData = "<tr><td>" + data[i].customerid + "</td>" +
+	    							"<td>" + data[i].customerphone + "</td>" +
+	    							"<td>" + data[i].customername + "</td>" +
+	    							"<td>" + data[i].childsex + "</td>" +
+	    							"<td>" + data[i].childdate + "</td>" +
+	    							"<td>" + data[i].creditkids + "</td>" +
+	    							"<td>" + data[i].creditcloth + "</td>" +
+	    							"<td>" + data[i].credittotal + "</td>" +
+	    							"<td>" + data[i].totals + " 元</td>" +
+	    							"<td>" + data[i].counts + " 次</td>" +
+	    							"<td><a href='#' onclick='gotoEdit(this)'>修改</a></td></tr>";
+	    			$("#customerlist").append(tbodyData);
+	    		}
+	    		var paginator = "<tr><td colspan='11' style='padding-top: 30px; text-align:center;'>"+
+				"<a onclick='searchCustomer(-1)' style='cursor: pointer'>上一页</a>&nbsp;&nbsp;&nbsp;&nbsp;" +
+				"<a onclick='searchCustomer(1)' style='cursor: pointer'>下一页</a></td></tr>";
+				$("#customerlist").append(paginator);
+	    	});
+	    }
+	    
+	    function gotoEdit(obj) {
+	    	var customerid = $(obj).parent().siblings("td:eq(0)").text();
+	    	var customerphone = $(obj).parent().siblings("td:eq(1)").text();
+	    	var customername = $(obj).parent().siblings("td:eq(2)").text();
+	    	var childsex = $(obj).parent().siblings("td:eq(3)").text();
+	    	var childdate = $(obj).parent().siblings("td:eq(4)").text();
+	    	var creditkids = $(obj).parent().siblings("td:eq(5)").text();
+	    	var creditcloth = $(obj).parent().siblings("td:eq(6)").text();
+	    	
+	    	$("#customerid").val(customerid);
+	    	$("#customerphone").val(customerphone);
+	    	$("#customername").val(customername);
+	    	$("#childsex").val(childsex);
+	    	$("#childdate").val(childdate);
+	    	$("#creditkids").val(creditkids);
+	    	$("#creditcloth").val(creditcloth);
+	    	
+	    	$("#editBtn").attr("disabled", false);
+	    }
+	    
+	    function editCustomer() {
+	    	var param = "customerid=" + $("#customerid").val() + 
+	    				"&customerphone=" + $("#customerphone").val() +
+	    				"&customername=" + $("#customername").val() +
+	    				"&childsex=" + $("#childsex").val() +
+	    				"&childdate=" + $("#childdate").val() +
+	    				"&creditkids=" + $("#creditkids").val() +
+	    				"&creditcloth=" + $("#creditcloth").val();
+	    	$.post("#(basePath)/customer/edit", param, function(data){
+	    		if (data == "edit-successful") {
+	    			showAlert("信息提示", "修改客户信息成功.");
+	    			$("#editBtn").attr("disabled", true);
+	    		}
+	    		else {
+	    			showAlert("错误提示", "修改客户信息失败，请联系管理员.");
+	    		}
+	    	});
+	    }
+    </script>
+</head>
+<body>
+
+#include("header.html")
+
+<div class="container" style="background-color: whitesmoke;">
+    <div class="row" style="padding: 30px 40px 30px 0px">
+        <form class="form-horizontal" role="form">
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="text-align: center; padding: 10px;">
+                <label>手机号码：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="padding: 10px;">
+                <input type="text" id="customerphone" class="form-control"/>
+                <input type="hidden" id="customerid" />
+            </div>
+            
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="text-align: center; padding: 10px;">
+                <label>会员昵称：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="padding: 10px;">
+                <input type="text" id="customername" class="form-control" value="未和"/>
+            </div>
+			
+			<div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="text-align: center; padding: 10px;">
+                <label>小孩性别：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="padding: 10px;">
+                <select id="childsex" class="form-control">
+                	<option value="男">男</option>
+                	<option value="女">女</option>
+                </select>
+            </div>
+            
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="text-align: center; padding: 10px;">
+                <label>出身日期：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="padding: 10px;">
+                <input type="text" id="childdate" class="form-control time-input" readonly/>
+            </div>
+
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="text-align: center; padding: 10px;">
+                <label>母婴积分：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="padding: 10px;">
+                <input type="text" id="creditkids" value="0" class="form-control"/>
+            </div>
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="text-align: center; padding: 10px;">
+                <label>童装积分：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="padding: 10px;">
+                <input type="text" id="creditcloth" value="0" class="form-control"/>
+            </div>
+        </form>
+        <form class="form-inline">
+            <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8" style="text-align: center; padding: 15px; margin-top: 20px;">
+            	注意：查询功能只支持通过手机查询，修改功能不能修改积分，可以修改其它基本信息。
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="text-align: right; padding: 10px; margin-top: 20px;">
+                <button onclick="addCustomer()" type="button" class="form-control btn btn-primary"><span class="glyphicon glyphicon-plus"></span> 新增</button>
+                <button onclick="editCustomer()" id="editBtn" type="button" disabled class="form-control btn btn-primary"><span class="glyphicon glyphicon-edit"></span> 修改</button>
+                <button onclick="pageIndex=1;searchCustomer(0);" type="button" class="form-control btn btn-primary"><span class="glyphicon glyphicon-search"></span> 查询</button>
+            </div>
+        </form>
+    </div>
+    <div class="row" style="padding: 20px 10px; background-color: #ffffff">
+        <table class="table table-responsive">
+            <thead style="font-weight: bold">
+	            <tr>
+	                <td>编号</td>
+	                <td>客户电话</td>
+	                <td>客户姓名</td>
+	                <td>小孩性别</td>
+	                <td>出生日期</td>
+	                <td>母婴积分</td>
+	                <td>童装积分</td>
+	                <td>总积分</td>
+	                <td>消费总额</td>
+	                <td>购买次数</td>
+	                <td>操作</td>
+	            </tr>
+            </thead>
+            <tbody id="customerlist"></tbody>
+        </table>
+    </div>
+</div>
+
+#include("footer.html")
+
+</body>
+</html>

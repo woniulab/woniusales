@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+    <title>蜗牛进销存-商品入库</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/bootstrap.css"/>
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/sitemain.css"/>
+    <script type="text/javascript" src="#(basePath)/library/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="#(basePath)/library/js/bootstrap.js"></script>
+    
+    <script>
+    
+	    $(document).ready(function() {
+	    	// 页面加载完成后，填充入库批次信息
+			$.post("#(basePath)/store/querybatch",function(data){
+				for (var i=0; i<data.length; i++) {
+					var optionList = "<option>" + data[i].batchname + "</option>";
+					$("#batchnamelist").append(optionList);
+				}
+			});
+	    });
+	    
+	    function uploadBatchFile() {
+	    	if ($("#batchname").val() == "") {
+    			showAlert("错误提示", "批次名不能为空.");
+    			$("#batchname").focus();
+    			return;
+    		}
+    		if ($("#batchfile").val() == "") {
+    			showAlert("错误提示", "文件名不能为空.");
+    			return;
+    		}
+    		
+    		var data = new FormData();	// 带附件上传
+    		data.append("batchname",$.trim($("#batchname").val()));
+    		data.append("batchfile",$("#batchfile").prop("files")[0]);
+    		
+    		$.ajax({
+    			url: '#(basePath)/goods/upload',
+    			type: 'POST',
+    			data: data,
+    			cache: false,
+    			processData: false,
+    			contentType: false,
+    			
+    			beforeSend:function(){
+    				//alert("正在进行操作，请稍候");
+    			},
+    			
+    			success : function(data) {
+    				if (typeof data == 'string' && data.match("already-imported")) {
+                		showAlert("错误提示", "你已经导入本批次，请勿重复导入.");
+                		return;
+                	}
+    				
+    				if (typeof data == 'string' && data.match("format-error")) {
+                		showAlert("错误提示", "你的进货信息文件格式不正确，请确定.");
+                		return;
+                	}
+    				           	
+                	$("#batchname").attr("readonly","readonly");
+                	$("#batchlist").show();
+                	$("#batchinfo").empty();
+                	$("#deletebatchbutton").show();
+                    
+                    if (data.length < 1) {
+                    	showAlert("错误提示", "并没有商品信息被导入，请确认.");
+                		return;
+                	}
+                    
+                    for (var i=0; i<data.length; i++) {
+                    	var batchinfo = "<tr><td>"+ (i+1) +"</td>" + 
+                    		"<td>" + data[i].goodsid + "</td>" +
+                    		"<td>" + data[i].batchname + "</td>" +
+	    					"<td>" + data[i].goodsserial + "</td>" +
+	    					"<td>" + data[i].goodsname + "</td>" + 
+	    					"<td>" + data[i].quantity + "</td>" +
+	    					"<td>" + data[i].unitprice + "</td>" + 
+	    					"<td>" + data[i].totalprice + "</td>" +
+	    					"<td>" + data[i].costunitprice + "</td>" +
+	    					"<td>" + data[i].costtotalprice + "</td>" +
+	    					"<td><a onclick='editGoods(this)' style='cursor: pointer'>修改</a>" +
+	    					"&nbsp;&nbsp;<a onclick='doDeleteGoods(this)' style='cursor: pointer'>删除</a></td></tr>";
+	   					$("#batchinfo").append(batchinfo);
+                    }
+    			}, 
+    			
+    			error : function(e) { 
+    				showAlert("错误提示", e);
+    			} 
+    		});
+	    }
+    
+	    function queryBatch() {
+	    	$.post("#(basePath)/goods/querybatch", "batchname=" + $("#batchnamelist").val(), function(data){
+	    		$("#batchlist").show();
+	    		$("#deletebatchbutton").hide();
+	    		$("#batchinfo").empty();
+	    		for (var i=0; i<data.length; i++) {
+                	var batchinfo = "<tr><td>"+ (i+1) +"</td>" + 
+                		"<td>" + data[i].goodsid + "</td>" +
+                		"<td>" + data[i].batchname + "</td>" +
+    					"<td>" + data[i].goodsserial + "</td>" +
+    					"<td>" + data[i].goodsname + "</td>" + 
+    					"<td>" + data[i].quantity + "</td>" +
+    					"<td>" + data[i].unitprice + "</td>" + 
+    					"<td>" + data[i].totalprice + "</td>" +
+    					"<td>" + data[i].costunitprice + "</td>" +
+    					"<td>" + data[i].costtotalprice + "</td>" +
+    					"<td><a onclick='editGoods(this)' style='cursor: pointer'>修改</a>" +
+    					"&nbsp;&nbsp;<a onclick='doDeleteGoods(this)' style='cursor: pointer'>删除</a></td></tr>";
+   					$("#batchinfo").append(batchinfo);
+                }
+			});
+	    }
+    	
+    	function deleteBatch() {
+    		if (confirm("你确定要删除本批次信息吗?") != true) {
+    			return;
+    		}
+    		$.post("#(basePath)/goods/deletebatch", "batchname=" + $("#batchname").val(), function(data){
+    			if (data == "delete-successful") {
+    				location.href = "batch";
+    			}
+    			else {
+    				showAlert("错误提示", "删除失败，请联系管理员确认问题.");
+    			}
+    		});
+    	}
+    	
+    	function editGoods(obj) {
+    		$(obj).parent().parent().css("background-color", "DodgerBlue");
+    		
+    		var goodsid = $(obj).parent().parent().find("td:eq(1)").text();
+    		var editrowindex = $(obj).parent().parent().index();
+    		$("#editrowindex").val(editrowindex);
+    		
+    		$.post("#(basePath)/goods/querygoods", "goodsid=" + goodsid, function(data){
+    			$("#goodsid").val(goodsid);
+    			$("#goodsbatchname").val(data.batchname);
+    			$("#goodsserial").val(data.goodsserial);
+    			$("#goodsname").val(data.goodsname);
+    			$("#quantity").val(data.quantity);
+    			$("#unitprice").val(data.unitprice);
+    			$("#totalprice").val(data.totalprice);
+    			$("#costunitprice").val(data.costunitprice);
+    			$("#costtotalprice").val(data.costtotalprice);
+    		});
+    		
+    		$(obj).attr("data-toggle","modal");
+    		$(obj).attr("data-target","#editModal");
+    	}
+    	
+    	function doEditGoods(obj) {
+    		var goodsid = $("#goodsid").val();
+    		var goodsserial = $("#goodsserial").val();
+    		var goodsname = $("#goodsname").val();
+    		var quantity = $("#quantity").val();
+    		var unitprice = $("#unitprice").val();
+    		var totalprice = $("#totalprice").val();
+    		var costunitprice = $("#costunitprice").val();
+    		var costtotalprice = $("#costtotalprice").val();
+    		
+    		var param = "goodsid=" + goodsid + 
+    					"&goodsserial=" + goodsserial +
+    					"&goodsname=" + goodsname + 
+    					"&quantity=" + quantity + 
+    					"&unitprice=" + unitprice + 
+    					"&totalprice=" + totalprice + 
+    					"&costunitprice=" + costunitprice + 
+    					"&costtotalprice=" + costtotalprice;
+    		$.post("#(basePath)/goods/editgoods", param, function(data){
+    			if (data.match("edit-successful")) {
+    				showAlert("成功提示", "修改商品信息成功.");
+    				$('#editModal').modal('hide');
+    				$("#batchinfo").find("tr:eq("+ $("#editrowindex").val()+")").find("td:eq(3)").text(goodsserial);
+    				$("#batchinfo").find("tr:eq("+ $("#editrowindex").val()+")").find("td:eq(4)").text(goodsname);
+    				$("#batchinfo").find("tr:eq("+ $("#editrowindex").val()+")").find("td:eq(5)").text(quantity);
+    				$("#batchinfo").find("tr:eq("+ $("#editrowindex").val()+")").find("td:eq(6)").text(unitprice);
+    				$("#batchinfo").find("tr:eq("+ $("#editrowindex").val()+")").find("td:eq(7)").text(totalprice);
+    				$("#batchinfo").find("tr:eq("+ $("#editrowindex").val()+")").find("td:eq(8)").text(costunitprice);
+    				$("#batchinfo").find("tr:eq("+ $("#editrowindex").val()+")").find("td:eq(9)").text(costtotalprice);
+    			}
+    			else {
+    				showAlert("错误提示", "修改失败，请联系管理员确认问题.");
+    			}
+    		});
+    	}
+    	
+    	function doDeleteGoods(obj) {
+    		if (confirm("你确定要删除该商品信息吗?") != true) {
+    			return;
+    		}
+    		
+    		var goodsid = $(obj).parent().parent().find("td:eq(1)").text();
+    		$.post("#(basePath)/goods/deletegoods", "goodsid=" + goodsid, function(data){
+    			if (data.match("delete-successful")) {
+    				showAlert("成功提示", "删除商品信息成功.");
+    				$(obj).parent().parent().remove();
+    			}
+    			else {
+    				showAlert("错误提示", "删除商品信息失败.");
+    			}
+    		});
+    	}
+    </script>
+</head>
+<body>
+
+#include("header.html")
+
+<div class="container" style="background-color: whitesmoke;">
+    <div class="row">
+        <form class="form-horizontal" role="form">
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="text-align: center; padding: 30px 10px 0px 10px">
+                <span style="font-size: 20px;">请认真检查商品基本信息，确保正确！</span><br>
+                <span style="line-height: 60px;">
+                	EXCEL清单格式为：第一行为数据字段，第二行开始为货品，7列依次为：编码，商品名称，数量，单价，金额，折后价，折后金额。
+                	&nbsp;&nbsp;&nbsp;&nbsp;<a href="#(basePath)/image/importbatch.png" target="_blank">查看清单图例</a>
+                </span>
+                <hr style="background-color: #aaaaaa; height: 1px; border: 0px"/>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="text-align: right; padding: 10px;">
+                <label>请输入批次名称：</label>
+            </div>
+            <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="padding: 10px;">
+                <input type="text" id="batchname" value=#(batchName) class="form-control"/>
+            </div>
+
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="text-align: right; padding: 10px;">
+                <label>请输入批次文件：</label>
+            </div>
+            <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="padding: 10px;">
+                <input type="file" id="batchfile" name="batchfile" class="form-control" style="height: 50px;"/>
+            </div>
+        </form>
+        <form class="form-inline">
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="text-align: center; padding: 30px;">
+                <input type="button" class="btn-primary form-control" value="确认导入本批次商品信息" onclick="uploadBatchFile()" style="width: 220px;"/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;按批次查询：&nbsp;
+                <select id="batchnamelist"></select>
+                &nbsp;&nbsp;&nbsp;&nbsp;
+                <input type="button" class="btn-primary form-control" value="确认查询" onclick="queryBatch()" style="width: 120px;"/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            </div>
+        </form>
+    </div>
+    
+    <div class="row" id="batchlist" style="display: none;">
+    	<div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="margin: 20px 0;">
+    		本批次商品信息导入成功，请确认详情，如需重新导入，请先击“删除本批次商品信息”按钮后，再重新导入。
+    	</div>
+    	<div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+    		<table class="table table-striped">
+    			<thead style="font-weight: bold; background-color: #333; color: #eee;">
+    				<tr>
+    					<td>序号</td>
+    					<td>唯一编号</td>
+    					<td>批次名称</td>
+    					<td>货号/编码</td>
+    					<td>商品名称</td>
+    					<td>数量</td>
+    					<td>单价</td>
+    					<td>总金额</td>
+    					<td>折后价</td>
+    					<td>折后总价</td>
+    					<td>操作</td>
+    				</tr>
+    			</thead>
+    			<tbody id="batchinfo"></tbody>
+    		</table>
+    	</div>
+    	<form class="form-inline">
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="text-align: center; padding: 30px;" id="deletebatchbutton">
+                <input type="button" class="btn-primary form-control" value="删除本批次商品信息" onclick="deleteBatch()" style="width: 300px;"/>
+            </div>
+        </form>
+    </div>	
+</div>
+
+<!-- 修改商品信息框  -->
+<div class="modal fade" id="editModal" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" data-backdrop="false" style="margin-top: 70px;">
+    <div class="modal-dialog" role="document" style="width: 400px;">
+        <div class="modal-content" style="padding: 0px">
+            <div class="modal-header" style="background-color: #337AB7; height: 50px;padding: 10px 20px; color: white;">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white;"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="editModalLabel">请确认货品修改信息：</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group row">
+                    <div class="col-lg-4 col-md-5"><label for="goodsbatchname">批次名称：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="goodsbatchname" class="form-control" readonly /></div>
+                    <div class="col-lg-4 col-md-5"><label for="goodsserial">商品货号：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="goodsserial" class="form-control" /></div>
+                    <div class="col-lg-4 col-md-5"><label for="goodsname">商品名称：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="goodsname" class="form-control" /></div>
+                    <div class="col-lg-4 col-md-5"><label for="quantity">进货数量：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="quantity" class="form-control" /></div>
+                    <div class="col-lg-4 col-md-5"><label for="unitprice">销售单价：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="unitprice" class="form-control" /></div>
+                    <div class="col-lg-4 col-md-5"><label for="totalprice">商品总价：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="totalprice" class="form-control"/></div>
+                    <div class="col-lg-4 col-md-5"><label for="costunitprice">进货单价：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="costunitprice" class="form-control" /></div>
+                    <div class="col-lg-4 col-md-5"><label for="costtotalprice">进货总价：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="costtotalprice" class="form-control"/></div>
+                    
+                    <div class="col-lg-12 col-md-12" style="margin-top: 20px;">
+                    	提示：请确认进货信息后，作此修改。
+                    	<input type="hidden" id="goodsid"/>
+                    	<input type="hidden" id="editrowindex"/>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" onclick="doEditGoods(this)">确认修改</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+#include("footer.html")
+
+</body>
+</html>

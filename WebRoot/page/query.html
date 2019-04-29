@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+    <title>蜗牛进销存-库存查询</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/bootstrap.css"/>
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/bootstrap-theme.css"/>
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/sitemain.css"/>
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/bootstrap-datetimepicker.css"/>
+    <script type="text/javascript" src="#(basePath)/library/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="#(basePath)/library/js/bootstrap.js"></script>
+    <script type="text/javascript" src="#(basePath)/library/js/bootstrap-datetimepicker.min.js"></script>
+    <script type="text/javascript" src="#(basePath)/library/js/bootstrap-datetimepicker.zh-CN.js"></script>
+    <script>
+    	var pageIndex = 1;	// 定义当前分页的初始页码
+    	
+	    $(document).ready(function(){
+	    	$('#earlystoretime').datetimepicker({
+	    	    autoclose: true,
+	    	    format: 'yyyy-mm-dd',
+	    	    todayBtn: 'linked',
+	    	    language: 'zh-CN',
+	    	    startView: 'month',
+	    	    minView: 'month'
+	    	});
+	    	$('#laststoretime').datetimepicker({
+	    	    autoclose: true,
+	    	    format: 'yyyy-mm-dd',
+	    	    todayBtn: 'linked',
+	    	    language: 'zh-CN',
+	    	    startView: 'month',
+	    	    minView: 'month'
+	    	});
+	    });
+	    
+	    // 查询零库存情况
+	    function queryZeroStored(pageType) {
+	    	$("#notstoredlist").hide();
+	    	$("#storedlist").show();
+	    	
+	    	pageIndex = pageIndex + pageType;
+	    	if (pageIndex <= 1) {
+	    		pageIndex = 1;
+	    	}
+
+	    	$.post("#(basePath)/query/zerostored", "page="+pageIndex, function(data){
+				$("#storedlist tbody").empty();
+				for (var i=0; i<data.length; i++) {
+					var tbodyData = "<tr><td>" + data[i].storesumid + "</td>" + 
+									"<td>" + data[i].goodsserial + "</td>" +
+									"<td>" + data[i].barcode + "</td>" + 
+									"<td>" + data[i].goodsname + "</td>" + 
+									"<td>" + data[i].goodssize + "</td>" + 
+									"<td>" + data[i].unitprice + "</td>" + 
+									"<td>" + data[i].quantity + "</td>" + 
+									"<td>" + data[i].remained + "</td>" + 
+									"<td>" + data[i].createtime + "</td>" +
+									"<td><a onclick='editStoreQuantity(this)' style='cursor: pointer'>修改库存</a></td></tr>";
+					$("#storedlist tbody").append(tbodyData);						
+				}
+				var paginator = "<tr><td colspan='10' style='padding-top: 30px; text-align:center;'>"+
+								"<a onclick='queryZeroStored(-1)' style='cursor: pointer'>上一页</a>&nbsp;&nbsp;&nbsp;&nbsp;" +
+								"<a onclick='queryZeroStored(1)' style='cursor: pointer'>下一页</a></td></tr>";
+				$("#storedlist tbody").append(paginator);						
+			});
+	    }
+	    
+	    // 未入库商品信息修改
+	    function editGoods(obj) {
+    		$(obj).parent().parent().css("background-color", "DodgerBlue");
+    		
+    		var goodsid = $(obj).parent().parent().find("td:eq(0)").text();
+    		
+    		$.post("#(basePath)/goods/querygoods", "goodsid=" + goodsid, function(data){
+    			$("#goodsidedit").val(goodsid);
+    			$("#goodsbatchname").val(data.batchname);
+    			$("#goodsserialedit").val(data.goodsserial);
+    			$("#goodsnameedit").val(data.goodsname);
+    			$("#quantityedit").val(data.quantity);
+    			$("#unitpriceedit").val(data.unitprice);
+    			$("#totalpriceedit").val(data.totalprice);
+    			$("#costunitpriceedit").val(data.costunitprice);
+    			$("#costtotalpriceedit").val(data.costtotalprice);
+    		});
+    		
+    		$(obj).attr("data-toggle","modal");
+    		$(obj).attr("data-target","#editModal");
+    	}
+    	
+    	function doEditGoods(obj) {
+    		var goodsid = $("#goodsidedit").val();
+    		var goodsserial = $("#goodsserialedit").val();
+    		var goodsname = $("#goodsnameedit").val();
+    		var quantity = $("#quantityedit").val();
+    		var unitprice = $("#unitpriceedit").val();
+    		var totalprice = $("#totalpriceedit").val();
+    		var costunitprice = $("#costunitpriceedit").val();
+    		var costtotalprice = $("#costtotalpriceedit").val();
+    		
+    		var param = "goodsid=" + goodsid + 
+    					"&goodsserial=" + goodsserial +
+    					"&goodsname=" + goodsname + 
+    					"&quantity=" + quantity + 
+    					"&unitprice=" + unitprice + 
+    					"&totalprice=" + totalprice + 
+    					"&costunitprice=" + costunitprice + 
+    					"&costtotalprice=" + costtotalprice;
+    		$.post("#(basePath)/goods/editgoods", param, function(data){
+    			if (data.match("edit-successful")) {
+    				showAlert("成功提示", "修改商品信息成功.");
+    				$('#editModal').modal('hide');
+    				queryNotStored();
+    			}
+    			else {
+    				showAlert("错误提示", "修改失败，请联系管理员确认问题.");
+    			}
+    		});
+    	}
+	    
+	    // 查询未入库商品情况
+	    function queryNotStored(pageType) {
+	    	$("#notstoredlist").show();
+	    	$("#storedlist").hide();
+	    	
+	    	pageIndex = pageIndex + pageType;
+	    	if (pageIndex <= 1) {
+	    		pageIndex = 1;
+	    	}
+	    	
+	    	$.post("#(basePath)/query/notstored", "page="+pageIndex, function(data){
+	    		$("#notstoredlist tbody").empty();
+	    		for (var i=0; i<data.length; i++) {
+	    			var tbodyData = "<tr><td>" + data[i].goodsid + "</td>" +
+	    							"<td>" + data[i].batchname + "</td>" +
+	    							"<td>" + data[i].goodsserial + "</td>" +
+	    							"<td>" + data[i].goodsname + "</td>" +
+	    							"<td>" + data[i].unitprice + "</td>" +
+	    							"<td>" + data[i].quantity + "</td>" +
+	    							"<td>" + data[i].createtime.substr(0,11) + "</td>" +
+	    							"<td>" + "<a href='store?batchname="+data[i].batchname+"&goodsserial="+data[i].goodsserial + "'>入库</a>" +
+	    							"&nbsp;&nbsp;<a onclick='editGoods(this)' style='cursor: pointer'>修改</a></td></tr>";
+	    							//"<td>" + "<a href='store?batchname="+data[i].batchname+"&goodsserial="+data[i].goodsserial+"&goodsname="+data[i].goodsname+"&unitprice="+data[i].unitprice+"'>商品入库</a></td></tr>";
+	    			$("#notstoredlist tbody").append(tbodyData);
+	    		}
+	    		var paginator = "<tr><td colspan='10' style='padding-top: 30px; text-align:center;'>"+
+				"<a onclick='queryNotStored(-1)' style='cursor: pointer'>上一页</a>&nbsp;&nbsp;&nbsp;&nbsp;" +
+				"<a onclick='queryNotStored(1)' style='cursor: pointer'>下一页</a></td></tr>";
+				$("#notstoredlist tbody").append(paginator);
+	    	});
+	    }
+	    
+	    // 对于已入库商品查询库存情况
+	    function queryStored(pageType) {
+	    	$("#notstoredlist").hide();
+	    	$("#storedlist").show();
+	    	
+	    	pageIndex = pageIndex + pageType;
+	    	if (pageIndex <= 1) {
+	    		pageIndex = 1;
+	    	}
+	    	
+	    	var param = "goodsserial=" + $("#goodsserial").val() + 
+	    				"&goodsname=" + $("#goodsname").val() + 
+	    				"&barcode=" + $("#barcode").val() + 
+	    				"&goodstype=" + $("#goodstype").val() + 
+	    				"&earlystoretime=" + $("#earlystoretime").val() + 
+	    				"&laststoretime=" + $("#laststoretime").val() +
+	    				"&page=" + pageIndex;
+	    	$.post("#(basePath)/query/stored", param, function(data){
+	    		$("#storedlist tbody").empty();
+	    		for (var i=0; i<data.length; i++) {
+	    			var tbodyData = "<tr><td>" + data[i].storesumid + "</td>" + 
+	    							"<td>" + data[i].goodsserial + "</td>" +
+	    							"<td>" + data[i].barcode + "</td>" + 
+	    							"<td>" + data[i].goodsname + "</td>" + 
+	    							"<td>" + data[i].goodssize + "</td>" + 
+	    							"<td>" + data[i].unitprice + "</td>" + 
+	    							"<td>" + data[i].quantity + "</td>" + 
+	    							"<td>" + data[i].remained + "</td>" + 
+	    							"<td>" + data[i].createtime + "</td>" + 
+	    							"<td><a onclick='editStoreQuantity(this)' style='cursor: pointer'>修改库存</a></td></tr>";
+	    			$("#storedlist tbody").append(tbodyData);						
+	    		}
+	    		var paginator = "<tr><td colspan='10' style='padding-top: 30px; text-align:center;'>"+
+				"<a onclick='queryStored(-1)' style='cursor: pointer'>上一页</a>&nbsp;&nbsp;&nbsp;&nbsp;" +
+				"<a onclick='queryStored(1)' style='cursor: pointer'>下一页</a></td></tr>";
+				$("#storedlist tbody").append(paginator);
+	    	});
+	    }
+	    
+	    function editStoreQuantity(obj) {
+	    	var remained = parseInt(window.prompt("请输入当前实际库存数量："));
+	    	if (remained > parseInt($(obj).parent().parent().find("td:eq(6)").text())) {
+	    		showAlert("错误提示", "库存数量不能超过入库总量.");
+	    		return;
+	    	}
+	    	var storesumid = $(obj).parent().parent().find("td:eq(0)").text();
+	    	$.post("#(basePath)/store/edit", "storesumid="+storesumid+"&remained="+remained, function(data){
+	    		if (data.match("edit-successful")) {
+	    			showAlert("信息提示", "修改库存数量成功.");
+	    			$(obj).parent().parent().find("td:eq(7)").text(remained);
+	    		}
+	    		else {
+	    			showAlert("错误提示", "修改库存数量失败.");
+	    		}
+	    	});
+	    }
+    </script>
+</head>
+<body>
+
+#include("header.html")
+
+<div class="container" style="background-color: whitesmoke;">
+    <div class="row" style="padding: 30px 40px 30px 0px">
+        <form class="form-horizontal" role="form">
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="text-align: center; padding: 10px;">
+                <label>货号：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="padding: 10px;">
+                <input type="text" id="goodsserial" class="form-control"/>
+            </div>
+            
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="text-align: center; padding: 10px;">
+                <label>品名：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="padding: 10px;">
+                <input type="text" id="goodsname" class="form-control"/>
+            </div>
+            
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="text-align: center; padding: 10px;">
+                <label>条码：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="padding: 10px;">
+                <input type="text" id="barcode" class="form-control"/>
+            </div>
+
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="text-align: center; padding: 10px;">
+                <label>类别：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="padding: 10px;">
+                <select id="goodstype" class="form-control">
+                	<option value=""></option>
+                	<option value="衣服">衣服</option>
+                	<option value="裤子">裤子</option>
+                	<option value="鞋袜">鞋袜</option>
+                	<option value="套装">套装</option>
+                	<option value="礼盒">礼盒</option>
+                	<option value="床品">床品</option>
+                	<option value="用品">用品</option>
+                	<option value="其它">其它</option>
+                </select>
+            </div>
+            
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="text-align: center; padding: 10px;">
+                <label>最早入库时间：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="padding: 10px;">
+                <input type="text" id="earlystoretime" class="form-control time-input" readonly/>
+            </div>
+            <div class="col-lg-2 col-md-2 col-sm-2 col-xs-2" style="text-align: center; padding: 10px;">
+                <label>最晚入库时间：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="padding: 10px;">
+                <input type="text" id="laststoretime" class="form-control time-input" readonly/>
+            </div>
+		</form>
+		<form class="form-inline">
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" style="padding: 10px; margin-top: 20px;">
+                
+            </div>
+            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6" style="padding: 10px; margin-top: 20px;text-align:right;">
+            	<input type="button" value="查询零库存商品" onclick="pageIndex=1;queryZeroStored(0);" class="form-control btn-primary"/>&nbsp;&nbsp;&nbsp;
+            	<input type="button" value="查询未入库商品" onclick="pageIndex=1;queryNotStored(0);" class="form-control btn-primary"/>&nbsp;&nbsp;&nbsp;
+                <input type="button" value="按条件查询库存情况" onclick="pageIndex=1;queryStored(0);" class="form-control btn-primary"/>&nbsp;&nbsp;&nbsp;
+            </div>
+        </form>
+    </div>
+    <div class="row" style="padding: 20px 10px; background-color: #ffffff">
+        <table class="table table-responsive" id="storedlist" style="display:none;">
+            <thead style="font-weight: bold">
+            <tr>
+                <td>编号</td>
+                <td>货号/编码</td>
+                <td>条码</td>
+                <td>品名</td>
+                <td>尺码</td>
+                <td>零售价</td>
+                <td>入库总量</td>
+                <td>剩余库存</td>
+                <td>入库时间</td>
+                <td>操作</td>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        
+        <table class="table table-responsive" id="notstoredlist" style="display:none;">
+            <thead style="font-weight: bold">
+            <tr>
+                <td>商品编号</td>
+                <td>进货批次</td>
+                <td>货号/编码</td>
+                <td>品名</td>
+                <td>零售价</td>
+                <td>进货数量</td>
+                <td>进货时间</td>
+                <td>操作</td>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 修改商品信息框  -->
+<div class="modal fade" id="editModal" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" data-backdrop="false" style="margin-top: 70px;">
+    <div class="modal-dialog" role="document" style="width: 400px;">
+        <div class="modal-content" style="padding: 0px">
+            <div class="modal-header" style="background-color: #337AB7; height: 50px;padding: 10px 20px; color: white;">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white;"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="editModalLabel">请确认货品修改信息：</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group row">
+                    <div class="col-lg-4 col-md-5"><label for="goodsbatchname">批次名称：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="goodsbatchname" class="form-control" readonly /></div>
+                    <div class="col-lg-4 col-md-5"><label for="goodsserialedit">商品货号：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="goodsserialedit" class="form-control" /></div>
+                    <div class="col-lg-4 col-md-5"><label for="goodsnameedit">商品名称：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="goodsnameedit" class="form-control" /></div>
+                    <div class="col-lg-4 col-md-5"><label for="quantityedit">进货数量：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="quantityedit" class="form-control" /></div>
+                    <div class="col-lg-4 col-md-5"><label for="unitpriceedit">销售单价：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="unitpriceedit" class="form-control" /></div>
+                    <div class="col-lg-4 col-md-5"><label for="totalpriceedit">商品总价：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="totalpriceedit" class="form-control"/></div>
+                    <!-- 
+                    <div class="col-lg-4 col-md-5"><label for="costunitpriceedit">进货单价：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="costunitpriceedit" class="form-control" /></div>
+                    <div class="col-lg-4 col-md-5"><label for="costtotalpriceedit">进货总价：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="costtotalpriceedit" class="form-control"/></div>
+                     -->
+                    
+                    <div class="col-lg-12 col-md-12" style="margin-top: 20px;">
+                    	提示：如需修改进货价格等信息，需使用admin账户登录后在批次管理中进行修改。
+                    	<input type="hidden" id="goodsidedit"/>
+                    	<input type="hidden" id="costunitpriceedit" />
+                    	<input type="hidden" id="costtotalpriceedit" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" onclick="doEditGoods(this)">确认修改</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+#include("footer.html")
+
+</body>
+</html>

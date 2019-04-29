@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+    <title>米乐熊-销售报表</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/bootstrap.css"/>
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/sitemain.css"/>
+    <script type="text/javascript" src="#(basePath)/library/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="#(basePath)/library/js/bootstrap.js"></script>
+    <script>
+    	var pageIndex = 1;	// 定义当前分页的初始页码
+    
+	    $(document).ready(function(){
+	    	$.post("#(basePath)/report/totalselltoday", function(data){
+	    		$("#totalsell-today").val(data);
+	    	});
+	    	
+	    	$.post("#(basePath)/report/totalsellmonth", function(data){
+	    		$("#totalsell-month").val(data);
+	    	});
+	    	
+	    	$.post("#(basePath)/report/totalsellyear", function(data){
+	    		$("#totalsell-year").val(data);
+	    	});
+	    	
+	    	$.post("#(basePath)/report/totalsellall", function(data){
+	    		$("#totalsell-all").val(data);
+	    	});
+	    	
+	    	$.post("#(basePath)/report/customercount", function(data){
+	    		$("#customer-count").val(data);
+	    	});
+	    	
+	    	$.post("#(basePath)/report/customerbuyonce", function(data){
+	    		$("#customer-buy-once").val(data);
+	    	});
+	    	
+	    	$.post("#(basePath)/report/customerbuytwice", function(data){
+	    		$("#customer-buy-twice").val(data);
+	    	});
+	    	
+	    	$.post("#(basePath)/report/customerbuymany", function(data){
+	    		$("#customer-buy-many").val(data);
+	    	});
+	    	
+	    	$.post("#(basePath)/report/myselltoday", function(data){
+	    		$("#mysell-today").val(data);
+	    	});
+	    	
+	    	$.post("#(basePath)/report/mysellmonth", function(data){
+	    		$("#mysell-month").val(data);
+	    	});
+	    	
+	    	sellDetailToday();
+	    });
+	    
+	    function sellDetailToday() {
+	    	$("#selldetail").show();
+	    	$("#sellsum").hide();
+	    	$("#selltype").hide();
+	    	$("#returndetail").hide();
+	    	$("#selldetail tbody").empty();
+	    	$.post("#(basePath)/report/selldetailtoday", "", function(data){
+	    		for (var i=0; i<data.length; i++) {
+	    			var tbodyData = "<tr><td>" + data[i].sellid + "</td>" +
+	    							"<td>" + data[i].createtime.substr(0,10) + "</td>" +
+	    							"<td>" + data[i].customerphone + "</td>" +
+	    							"<td>" + data[i].goodsserial + "</td>" +
+	    							"<td>" + data[i].goodsname + "</td>" +
+	    							"<td>" + data[i].goodstype + "</td>" +
+	    							"<td>" + data[i].goodssize + "</td>" +
+	    							"<td>" + data[i].unitprice + "</td>" +
+	    							"<td>" + data[i].discountratio + "</td>" +
+	    							"<td>" + data[i].discountprice + "</td>" +
+	    							"<td>" + data[i].buyquantity + "</td>" +
+	    							"<td>" + data[i].subtotal + "</td>" +
+	    							"<td><a style='cursor:pointer' onclick='returnGoods(this)'>退货</a></td></tr>";
+	    			$("#selldetail tbody").append(tbodyData);
+	    		}
+	    	});
+	    }
+	    
+	    function sellDetailMonth() {
+	    	$("#selldetail").show();
+	    	$("#sellsum").hide();
+	    	$("#selltype").hide();
+	    	$("#returndetail").hide();
+	    	$("#selldetail tbody").empty();
+	    	$.post("#(basePath)/report/selldetailmonth", "", function(data){
+	    		for (var i=0; i<data.length; i++) {
+	    			var tbodyData = "<tr><td>" + data[i].sellid + "</td>" +
+	    							"<td>" + data[i].createtime.substr(0,10) + "</td>" +
+	    							"<td>" + data[i].customerphone + "</td>" +
+	    							"<td>" + data[i].goodsserial + "</td>" +
+	    							"<td>" + data[i].goodsname + "</td>" +
+	    							"<td>" + data[i].goodstype + "</td>" +
+	    							"<td>" + data[i].goodssize + "</td>" +
+	    							"<td>" + data[i].unitprice + "</td>" +
+	    							"<td>" + data[i].discountratio + "</td>" +
+	    							"<td>" + data[i].discountprice + "</td>" +
+	    							"<td>" + data[i].buyquantity + "</td>" +
+	    							"<td>" + data[i].subtotal + "</td>" +
+	    							"<td><a style='cursor:pointer' onclick='returnGoods(this)'>退货</a></td></tr>";
+	    			$("#selldetail tbody").append(tbodyData);
+	    		}
+	    	});
+	    }
+	    
+	    function sellDetailAll(pageType) {
+	    	$("#selldetail").show();
+	    	$("#sellsum").hide();
+	    	$("#selltype").hide();
+	    	$("#returndetail").hide();
+	    	$("#selldetail tbody").empty();
+	    	
+	    	pageIndex = pageIndex + pageType;
+	    	if (pageIndex <= 1) {
+	    		pageIndex = 1;
+	    	}
+	    	
+	    	$.post("#(basePath)/report/selldetailall", "page="+pageIndex, function(data){
+	    		for (var i=0; i<data.length; i++) {
+	    			var tbodyData = "<tr><td>" + data[i].sellid + "</td>" +
+	    							"<td>" + data[i].createtime.substr(0,10) + "</td>" +
+	    							"<td>" + data[i].customerphone + "</td>" +
+	    							"<td>" + data[i].goodsserial + "</td>" +
+	    							"<td>" + data[i].goodsname + "</td>" +
+	    							"<td>" + data[i].goodstype + "</td>" +
+	    							"<td>" + data[i].goodssize + "</td>" +
+	    							"<td>" + data[i].unitprice + "</td>" +
+	    							"<td>" + data[i].discountratio + "</td>" +
+	    							"<td>" + data[i].discountprice + "</td>" +
+	    							"<td>" + data[i].buyquantity + "</td>" +
+	    							"<td>" + data[i].subtotal + "</td>" +
+	    							"<td><a style='cursor:pointer' onclick='returnGoods(this)'>退货</a></td></tr>";
+	    			$("#selldetail tbody").append(tbodyData);
+	    		}
+	    		var paginator = "<tr><td colspan='13' style='padding-top: 30px; text-align:center;'>"+
+				"<a onclick='sellDetailAll(-1)' style='cursor: pointer'>上一页</a>&nbsp;&nbsp;&nbsp;&nbsp;" +
+				"<a onclick='sellDetailAll(1)' style='cursor: pointer'>下一页</a></td></tr>";
+				$("#selldetail tbody").append(paginator);
+	    	});
+	    }
+	    
+	    function sellSumToday() {
+	    	$("#selldetail").hide();
+	    	$("#sellsum").show();
+	    	$("#selltype").hide();
+	    	$("#returndetail").hide();
+	    	$("#sellsum tbody").empty();
+	    	$.post("#(basePath)/report/sellsumtoday", "", function(data){
+	    		for (var i=0; i<data.length; i++) {
+	    			var tbodyData = "<tr><td>" + data[i].sellsumid + "</td>" +
+	    							"<td>" + data[i].createtime + "</td>" +
+	    							"<td>" + data[i].customerphone + "</td>" +
+	    							"<td>" + data[i].creditratio + "</td>" +
+	    							"<td>" + data[i].creditsum + "</td>" +
+	    							"<td>" + data[i].tickettype + "</td>" +
+	    							"<td>" + data[i].ticketsum + "</td>" +
+	    							"<td>" + data[i].totalprice + "</td>" +
+	    							"<td>" + data[i].paymethod + "</td>" +
+	    							"<td>" + data[i].realname + "</td></tr>";
+	    			$("#sellsum tbody").append(tbodyData);
+	    		}
+	    	});
+	    }
+	    
+		function sellSumMonth() {
+			$("#selldetail").hide();
+	    	$("#sellsum").show();
+	    	$("#selltype").hide();
+	    	$("#returndetail").hide();
+			$("#sellsum tbody").empty();
+	    	$.post("#(basePath)/report/sellsummonth", "", function(data){
+	    		for (var i=0; i<data.length; i++) {
+	    			var tbodyData = "<tr><td>" + data[i].sellsumid + "</td>" +
+	    							"<td>" + data[i].createtime + "</td>" +
+	    							"<td>" + data[i].customerphone + "</td>" +
+	    							"<td>" + data[i].creditratio + "</td>" +
+	    							"<td>" + data[i].creditsum + "</td>" +
+	    							"<td>" + data[i].tickettype + "</td>" +
+	    							"<td>" + data[i].ticketsum + "</td>" +
+	    							"<td>" + data[i].totalprice + "</td>" +
+	    							"<td>" + data[i].paymethod + "</td>" +
+	    							"<td>" + data[i].realname + "</td></tr>";
+	    			$("#sellsum tbody").append(tbodyData);
+	    		}
+	    	});
+		}
+		
+		function sellSumAll(pageType) {
+			$("#selldetail").hide();
+	    	$("#sellsum").show();
+	    	$("#selltype").hide();
+	    	$("#returndetail").hide();
+			$("#sellsum tbody").empty();
+			
+			pageIndex = pageIndex + pageType;
+	    	if (pageIndex <= 1) {
+	    		pageIndex = 1;
+	    	}
+	    	
+	    	$.post("#(basePath)/report/sellsumall", "page="+pageIndex, function(data){
+	    		for (var i=0; i<data.length; i++) {
+	    			var tbodyData = "<tr><td>" + data[i].sellsumid + "</td>" +
+	    							"<td>" + data[i].createtime + "</td>" +
+	    							"<td>" + data[i].customerphone + "</td>" +
+	    							"<td>" + data[i].creditratio + "</td>" +
+	    							"<td>" + data[i].creditsum + "</td>" +
+	    							"<td>" + data[i].tickettype + "</td>" +
+	    							"<td>" + data[i].ticketsum + "</td>" +
+	    							"<td>" + data[i].totalprice + "</td>" +
+	    							"<td>" + data[i].paymethod + "</td>" +
+	    							"<td>" + data[i].realname + "</td></tr>";
+	    			$("#sellsum tbody").append(tbodyData);
+	    		}
+	    		var paginator = "<tr><td colspan='13' style='padding-top: 30px; text-align:center;'>"+
+				"<a onclick='sellSumAll(-1)' style='cursor: pointer'>上一页</a>&nbsp;&nbsp;&nbsp;&nbsp;" +
+				"<a onclick='sellSumAll(1)' style='cursor: pointer'>下一页</a></td></tr>";
+				$("#sellsum tbody").append(paginator);
+	    	});
+	    }
+		
+		function sellTypeMonth() {
+			$("#selldetail").hide();
+	    	$("#sellsum").hide();
+	    	$("#selltype").show();
+	    	$("#returndetail").hide();
+			$("#selltype tbody").empty();
+			$.post("#(basePath)/report/selltypemonth", "", function(data){
+	    		for (var i=0; i<data.length; i++) {
+	    			var tbodyData = "<tr><td>" + data[i].goodstype + "</td>" +
+	    							"<td>" + data[i].buyquantity + " 件</td>" +
+	    							"<td>" + data[i].selltotal + " 元</td></tr>";
+	    			$("#selltype tbody").append(tbodyData);
+	    		}
+	    	});
+		}
+		
+		function sellTypeAll() {
+			$("#selldetail").hide();
+	    	$("#sellsum").hide();
+	    	$("#selltype").show();
+	    	$("#returndetail").hide();
+			$("#selltype tbody").empty();
+			$.post("#(basePath)/report/selltypeall", "", function(data){
+	    		for (var i=0; i<data.length; i++) {
+	    			var tbodyData = "<tr><td>" + data[i].goodstype + "</td>" +
+	    							"<td>" + data[i].buyquantity + " 件</td>" +
+	    							"<td>" + data[i].selltotal + " 元</td></tr>";
+	    			$("#selltype tbody").append(tbodyData);
+	    		}
+	    	});
+		}
+		
+		function queryReturn(pageType) {
+			$("#selldetail").hide();
+	    	$("#sellsum").hide();
+	    	$("#selltype").hide();
+	    	$("#returndetail").show();
+			$("#returndetail tbody").empty();
+			
+			pageIndex = pageIndex + pageType;
+	    	if (pageIndex <= 1) {
+	    		pageIndex = 1;
+	    	}
+			
+			$.post("#(basePath)/report/returndetail", "page="+pageIndex, function(data){
+				for (var i=0; i<data.length; i++) {
+	    			var tbodyData = "<tr><td>" + data[i].returnid + "</td>" +
+	    							"<td>" + data[i].createtime.substr(0, 10) + "</td>" +
+	    							"<td>" + data[i].customerphone + "</td>" +
+	    							"<td>" + data[i].goodsserial + "</td>" +
+	    							"<td>" + data[i].goodsname + "</td>" +
+	    							"<td>" + data[i].goodssize + "</td>" +
+	    							"<td>" + data[i].unitprice + "</td>" +
+	    							"<td>" + data[i].buyquantity + "</td>" +
+	    							"<td>" + data[i].discountratio + "</td>" +
+	    							"<td>" + parseInt(data[i].subtotal) + "</td>" +
+	    							"<td>" + data[i].returnticket + "</td>" +
+	    							"<td>" + data[i].returnmoney + "</td>" +
+	    							"<td>" + data[i].returncredit + "</td></tr>";
+	    			$("#returndetail tbody").append(tbodyData);
+	    		}
+				var paginator = "<tr><td colspan='13' style='padding-top: 30px; text-align:center;'>"+
+				"<a onclick='queryReturn(-1)' style='cursor: pointer'>上一页</a>&nbsp;&nbsp;&nbsp;&nbsp;" +
+				"<a onclick='queryReturn(1)' style='cursor: pointer'>下一页</a></td></tr>";
+				$("#returndetail tbody").append(paginator);
+			});
+		}
+		
+		function returnGoods(obj) {
+	    	var sellid = $(obj).parent().parent().find("td:eq(0)").text();
+	    	$("#sellid").val(sellid);
+	    	$("#goodsserial").val($(obj).parent().parent().find("td:eq(3)").text());
+	    	$("#goodsname").val($(obj).parent().parent().find("td:eq(4)").text());
+	    	$("#returnqty").val($(obj).parent().parent().find("td:eq(10)").text());
+	    	$("#subtotal").val($(obj).parent().parent().find("td:eq(11)").text());
+	    	
+	    	$.post("#(basePath)/sell/prereturn", "sellid=" + sellid, function(data){
+	    		$("#returncredit").val(data.split("#")[0]);
+	    		$("#returnticket").val(data.split("#")[1]);
+	    		$("#returnmoney").val(data.split("#")[2]);
+	    	});
+	    	
+	    	$(obj).attr("data-toggle","modal");
+    		$(obj).attr("data-target","#returnModal");
+	    }
+		
+		function doReturn(obj) {
+			var sellid = $.trim($("#sellid").val());
+			var goodsserial = $.trim($("#goodsserial").val());
+			var param = "sellid=" + sellid + "&goodsserial=" + goodsserial;
+			$.post("#(basePath)/sell/doreturn", param, function(data){
+				if (data == "goodsinfo-error") {
+					showAlert("错误提示", "退货商品信息不正确.");
+				}
+				else if (data == "return-successful") {
+					showAlert("信息提示", "退货成功，建议查询报表确认退货信息.");
+					location.reload();
+				}
+				else {
+					showAlert("错误提示", "退货失败.");
+				}
+			});
+		}
+    </script>
+</head>
+<body>
+
+#include("header.html")
+
+<div class="container" style="background-color: whitesmoke;">
+    <div class="row" style="padding: 30px 40px 30px 0px">
+        <form class="form-horizontal" role="form">
+            <div class="col-lg-2 col-md-2 col-sm-4 col-xs-4" style="text-align: center; padding: 10px;">
+                <label for="totalsell-today">今日销售总额：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-8 col-xs-8" style="padding: 10px;">
+                <input type="text" id="totalsell-today" class="form-control" readonly/>
+            </div>
+
+            <div class="col-lg-2 col-md-2 col-sm-4 col-xs-4" style="text-align: center; padding: 10px;">
+                <label for="totalsell-month">当月销售总额：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-8 col-xs-8" style="padding: 10px;">
+                <input type="text" id="totalsell-month" class="form-control" readonly/>
+            </div>
+            
+            <div class="col-lg-2 col-md-2 col-sm-4 col-xs-4" style="text-align: center; padding: 10px;">
+                <label for="totalsell-year">今年销售总额：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-8 col-xs-8" style="padding: 10px;">
+                <input type="text" id="totalsell-year" class="form-control" readonly/>
+            </div>
+            
+            <div class="col-lg-2 col-md-2 col-sm-4 col-xs-4" style="text-align: center; padding: 10px;">
+                <label for="totalsell-all">历史销售总额：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-8 col-xs-8" style="padding: 10px;">
+                <input type="text" id="totalsell-all" class="form-control" readonly/>
+            </div>
+
+            <div class="col-lg-2 col-md-2 col-sm-4 col-xs-4" style="text-align: center; padding: 10px;">
+                <label for="customer-count">VIP客户总数：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-8 col-xs-8" style="padding: 10px;">
+                <input type="text" id="customer-count" class="form-control" readonly/>
+            </div>
+            
+            <div class="col-lg-2 col-md-2 col-sm-4 col-xs-4" style="text-align: center; padding: 10px;">
+                <label for="customer-buy-once">购买一次数：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-8 col-xs-8" style="padding: 10px;">
+                <input type="text" id="customer-buy-once" class="form-control" readonly/>
+            </div>
+            
+            <div class="col-lg-2 col-md-2 col-sm-4 col-xs-4" style="text-align: center; padding: 10px;">
+                <label for="customer-buy-twice">购买两次数：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-8 col-xs-8" style="padding: 10px;">
+                <input type="text" id="customer-buy-twice" class="form-control" readonly/>
+            </div>
+            
+            <div class="col-lg-2 col-md-2 col-sm-4 col-xs-4" style="text-align: center; padding: 10px;">
+                <label for="customer-buy-many">多次购买数：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-8 col-xs-8" style="padding: 10px;">
+                <input type="text" id="customer-buy-many" class="form-control" readonly/>
+            </div>
+            
+            <div class="col-lg-2 col-md-2 col-sm-4 col-xs-4" style="text-align: center; padding: 10px;">
+                <label for="mysell-today">我的今日销售额：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-8 col-xs-8" style="padding: 10px;">
+                <input type="text" id="mysell-today" class="form-control" readonly/>
+            </div>
+            
+            <div class="col-lg-2 col-md-2 col-sm-4 col-xs-4" style="text-align: center; padding: 10px;">
+                <label for="mysell-month">我的本月销售额：</label>
+            </div>
+            <div class="col-lg-4 col-md-4 col-sm-8 col-xs-8" style="padding: 10px;">
+                <input type="text" id="mysell-month" class="form-control" readonly/>
+            </div>
+        </form>     
+    </div>
+    
+    <div class="row" style="padding: 0px 10px 30px 20px;">
+    	<form class="form-inline">
+    		<div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+	    		<button type="button" onclick="sellDetailToday()" class="btn btn-primary form-control" style="margin: 10px 0px;"><span class="glyphicon glyphicon-star"></span> 当日明细</button>
+	    		<button type="button" onclick="sellDetailMonth()" class="btn btn-primary form-control" style="margin: 10px 0px;"><span class="glyphicon glyphicon-flash"></span> 当月明细</button>
+	    		<button type="button" onclick="pageIndex=1;sellDetailAll(0);" class="btn btn-primary form-control" style="margin: 10px 0px;"><span class="glyphicon glyphicon-yen"></span> 总体明细</button>
+	    		&nbsp;&nbsp;|&nbsp;&nbsp;
+	    		<button type="button" onclick="sellSumToday()" class="btn btn-primary form-control" style="margin: 10px 0px;"><span class="glyphicon glyphicon-user"></span> 当日摘要</button>
+	    		<button type="button" onclick="sellSumMonth()" class="btn btn-primary form-control" style="margin: 10px 0px;"><span class="glyphicon glyphicon-bell"></span> 当月摘要</button>
+	    		<button type="button" onclick="pageIndex=1;sellSumAll(0);" class="btn btn-primary form-control" style="margin: 10px 0px;"><span class="glyphicon glyphicon-send"></span> 总体摘要</button>
+	    		&nbsp;&nbsp;|&nbsp;&nbsp;
+	    		<button type="button" onclick="sellTypeMonth()" class="btn btn-primary form-control" style="margin: 10px 0px;"><span class="glyphicon glyphicon-new-window"></span> 当月按类汇总</button>
+	    		<button type="button" onclick="sellTypeAll()" class="btn btn-primary form-control" style="margin: 10px 0px;"><span class="glyphicon glyphicon-tower"></span> 总体按类汇总</button>
+	    		&nbsp;&nbsp;|&nbsp;&nbsp;
+	    		<button type="button" onclick="pageIndex=1;queryReturn(0);" class="btn btn-primary form-control" style="margin: 10px 0px;"><span class="glyphicon glyphicon-remove"></span> 退货记录</button>
+    		</div>
+    	</form>
+    </div>
+    
+    <div class="row" style="padding: 20px 10px; background-color: #ffffff">
+        <table class="table table-responsive" id="selldetail" style="display: none;">
+            <thead style="font-weight: bold">
+            <tr>
+                <td>编号</td>
+                <td>日期</td>
+                <td>客户电话</td>
+                <td>货号</td>
+                <td>品名</td>
+                <td>品类</td>
+                <td>尺码</td>
+                <td>单价</td>
+                <td>折扣率</td>
+                <td>折后单价</td>
+                <td>数量</td>
+                <td>小计</td>
+                <td>操作</td>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        
+        <table class="table table-responsive" id="sellsum">
+            <thead style="font-weight: bold">
+            <tr>
+                <td>编号</td>
+                <td>日期</td>
+                <td>客户电话</td>
+                <td>积分比例</td>
+                <td>本次积分</td>
+                <td>优惠券</td>
+                <td>优惠金额</td>
+                <td>实收金额</td>
+                <td>支付方式</td>
+                <td>销售员</td>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        
+        <table class="table table-responsive" id="selltype" style="display: none;">
+            <thead style="font-weight: bold">
+            <tr>
+                <td>商品类别</td>
+                <td>销售数量</td>
+                <td>销售总额</td>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        
+        <table class="table table-responsive" id="returndetail" style="display: none;">
+            <thead style="font-weight: bold">
+            <tr>
+                <td>编号</td>
+                <td>退货日期</td>
+                <td>客户电话</td>
+                <td>退货货号</td>
+                <td>退货品名</td>
+                <td>尺码</td>
+                <td>单价</td>
+                <td>数量</td>
+                <td>折扣</td>
+                <td>实收额</td>
+                <td>优惠额</td>
+                <td>实退额</td>
+                <td>扣除积分</td>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 退货确认框  -->
+<div class="modal fade" id="returnModal" tabindex="-1" role="dialog" aria-labelledby="loginModalLabel" data-backdrop="false" style="margin-top: 70px;">
+    <div class="modal-dialog" role="document" style="width: 400px;">
+        <div class="modal-content" style="padding: 0px">
+            <div class="modal-header" style="background-color: #337AB7; height: 50px;padding: 10px 20px; color: white;">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white;"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="returnModalLabel">请确认退货信息：</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group row">
+                	<div class="col-lg-4 col-md-5"><label for="goodsserial">退货货号：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="goodsserial" class="form-control" readonly/></div>
+                    <div class="col-lg-4 col-md-5"><label for="goodsname">商品品名：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="goodsname" class="form-control" readonly/></div>
+                    <div class="col-lg-4 col-md-5"><label for="returnqty">退货数量：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="returnqty" class="form-control" readonly/></div>
+                    <div class="col-lg-4 col-md-5"><label for="subtotal">货款小计：</label></div>
+                    <div class="col-lg-8 col-md-7"><input type="text" id="subtotal" class="form-control" readonly/></div>
+                    <div class="col-lg-6 col-md-7"><label for="returncredit">按比例扣除积分：</label></div>
+                    <div class="col-lg-6 col-md-5"><input type="text" id="returncredit" class="form-control" readonly/></div>
+                    <div class="col-lg-6 col-md-7"><label for="returnticket">按比例扣除优惠额：</label></div>
+                    <div class="col-lg-6 col-md-5"><input type="text" id="returnticket" class="form-control" readonly/></div>
+                    <div class="col-lg-6 col-md-7"><label for="returnmoney">实退金额(可修改)：</label></div>
+                    <div class="col-lg-6 col-md-5"><input type="text" id="returnmoney" class="form-control"/></div>
+                    <div class="col-lg-12 col-md-12" style="margin-top: 20px;">
+                    	提示：退货一旦确定，库存和销售额均复原。<input type="hidden" id="sellid"/>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" onclick="doReturn(this)">确认退货</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+#include("footer.html")
+
+</body>
+</html>

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+    <title>蜗牛进销存-商品入库</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/bootstrap.css"/>
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/sitemain.css"/>
+    <script type="text/javascript" src="#(basePath)/library/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="#(basePath)/library/js/bootstrap.js"></script>
+    <script type="text/javascript" src="#(basePath)/library/js/bootstrap-typeahead.js"></script>
+    
+    <script>
+	    $(document).ready(function() {
+	    	// 页面加载完成后，填充入库批次信息
+			$.post("#(basePath)/store/querybatch",function(data){
+				for (var i=0; i<data.length; i++) {
+					var optionList = "<option>" + data[i].batchname + "</option>";
+					$("#batchname").append(optionList);
+				}
+			});
+	    	
+	    	// 页面加载完成后，如果通过未入库查询页面进行的商品入库，调用queryByBatchAndSerial进行同步更新
+	    	queryByBatchAndSerial('null');
+	    	
+	    	// 自动完成货号/编码的输入
+			$("#goodsserial").typeahead({
+				source: function (query, process) {
+			        return $.ajax({
+			            url: '#(basePath)/store/queryserial',
+			            type: 'post',
+			            data: {'query': query, 'batchname': $("#batchname").val()},
+			            dataType: 'json',
+			            success: function (result) {
+			                var resultList = result.map(function(item) {
+	                            var aItem = { goodsserial: item.goodsserial };
+	                            return JSON.stringify(aItem);
+	                        });
+			                return process(resultList);                                           
+			            }
+			        });
+				},
+				highlighter: function (obj) {
+		            var item = JSON.parse(obj);
+		            var query = this.query.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, '\\$&');
+		            return item.goodsserial.replace(new RegExp('(' + query + ')', 'ig'), function ($1, match) {
+		                return '<strong>' + match + '</strong>'
+		            });
+		        },
+				updater: function (obj) {
+		            var item = JSON.parse(obj);
+		            return item.goodsserial;
+		        },
+		        items: 10
+			});
+	    });
+    
+    	function inputBarcode(){
+    		$("#inputsize").focus();
+    	}
+    	
+    	function inputSize(){
+   			var inputsize = $("#inputsize").val();
+   			
+   			if (inputsize.charCodeAt(inputsize.length-1) == 45) {
+   				$("#inputsize").val(inputsize.substr(0,inputsize.length-1));
+   			}
+   			$("#quantity").focus();
+    	}
+    	
+    	function inputQuantity() {
+    		confirmStore();
+    	}
+    	
+    	function queryByBatchAndSerial() {
+    		if ($.trim($("#goodsserial").val()).length == 0) {
+    			return;
+    		}
+    		
+    		var param = "batchname=" + $("#batchname").val() + 
+    		            "&goodsserial=" + $.trim($("#goodsserial").val());
+    		
+   			$.post("#(basePath)/store/queryinfo", param, function(data){
+   				if (data.length >= 1) {
+   					$("#goodsname").val(data[0].goodsname + "，该批次总数量为：" + data[0].quantity);
+   					$("#unitprice").val(data[0].unitprice);
+   					
+   					if (data[0].barcode != '0') {
+   						$("#barcode").val(data[0].barcode);
+   					}
+   					else {
+   						$("#barcode").val("");
+   					}
+   					if (data[0].inputsize != '0') {
+   						$("#inputsize").val(data[0].inputsize);
+   					}
+   					else {
+   						$("#inputsize").val("");
+   					}
+   					
+   					// 如果是首次入库，则根据品名处理类别信息，否则直接填充
+   					if (data[0].goodstype == '0' ) {
+   						if (data[0].goodsname.match(/(衣|裙|衫|马甲|T|恤|外套|羽绒服|背心)/)) {
+    						$("#goodstype").val("衣服");
+    					}
+    					else if (data[0].goodsname.match(/(裤|打底|档|裆)/)) {
+    						$("#goodstype").val("裤子");
+    					}
+    					else if (data[0].goodsname.match(/(袜|鞋)/)) {
+    						$("#goodstype").val("鞋袜");
+    					}
+    					else if (data[0].goodsname.match(/(套装|套服|开套|绳套)/)) {
+    						$("#goodstype").val("套装");
+    					}
+    					else if (data[0].goodsname.match(/(礼盒)/)) {
+    						$("#goodstype").val("礼盒");
+    					}
+    					else if (data[0].goodsname.match(/(床|毯|枕|被|睡|保暖)/)) {
+    						$("#goodstype").val("床品");
+    					}
+    					else if (data[0].goodsname.match(/(围嘴|帽|手套|巾|衣架|背带|手帕|肚围)/)) {
+    						$("#goodstype").val("用品");
+    					}
+    					else {
+    						$("#goodstype").val("其它");
+    					}
+   					}
+   					else {
+   						$("#goodstype").val(data[0].goodstype);
+   					}
+   					
+   					$("#barcode").focus();
+   				}
+   				else {
+   					$("#message").val("失败：查询数据不正确，请重新确认.");
+   					$("#goodsserial").focus();
+   				}
+   			});
+    	}
+    	
+    	function confirmStore() {
+    		
+    		if ($.trim($("#goodsserial").val()) == "") {
+    			$("#message").val("失败：请输入商品编码/货号.");
+    			$("#goodsserial").focus();
+    			return;
+    		}
+    		
+    		if ($.trim($("#barcode").val()) == "") {
+    			$("#message").val("失败：请输入商品的条码.");
+    			$("#barcode").focus();
+    			return;
+    		}
+    		
+    		if ($.trim($("#inputsize").val()) == "") {
+    			$("#message").val("失败：请输入商品尺码.");
+    			$("#inputsize").focus();
+    			return;
+    		}
+    		
+    		if (!$("#quantity").val().match(/^\d{1,2}$/)) {
+    			$("#message").val("失败：输入的数量不正确，只能为小于100的正整数.");
+    			return;
+    		}
+    		
+    		if (confirm("你是否确认提交该入库信息?") != true) {
+    			return;
+    		}
+    		
+    		var param = "batchname=" + $.trim($("#batchname").val()) +
+    					"&goodsserial=" + $.trim($("#goodsserial").val()).toUpperCase() +
+    					"&barcode=" + $.trim($("#barcode").val()) +
+    					"&inputsize=" + $.trim($("#inputsize").val()).toUpperCase() +
+    					"&goodstype=" + $.trim($("#goodstype").val()) +
+    					"&quantity=" + $.trim($("#quantity").val());
+    		
+    		$.post("#(basePath)/store/add", param, function(data){
+    			// 判断是否为JSON对象
+    			var isJson = (typeof(data) == "object" && Object.prototype.toString.call(data).toLowerCase() == "[object array]");
+    			if (isJson) {
+	    			if (data.length < 1) {
+	    				$("#message").val("失败：本次入库没有成功，请确认入库信息.");
+	    				return;
+	    			}
+	    			
+	    			for (var i=0; i<data.length; i++) {
+	    				var tbodyData = "<tr><td>"+ data[i].goodsid +"</td>" +
+	    								"<td>"+ data[i].batchname +"</td>" +
+	    								"<td>"+ data[i].barcode +"</td>" +
+	    								"<td>"+ data[i].goodsserial +"</td>" +
+	    								"<td>"+ data[i].goodsname +"</td>" +
+	    								"<td>"+ data[i].inputsize +"</td>" +
+	    								"<td>"+ data[i].quantity +"</td>" +
+	    								"<td>"+ data[i].unitprice +"</td>" +
+	    								"<td>"+ data[i].realname +"</td></tr>";
+	    				$("#storeinfo").append(tbodyData);
+	    				
+	    				// 清除已经录入的信息
+	    				$("#goodsserial").val("");
+	    				$("#barcode").val("");
+	    				$("#goodsname").val("");
+	    				$("#inputsize").val("");
+	    				$("#unitprice").val("");
+	    				
+	    				$("#message").val("成功：商品入库成功，请继续录入下一笔");
+	    				$("#message").css("color", "black");
+	    				$("#goodsserial").focus();
+	    			}
+    			}
+    			else {
+    				$("#message").val(data);
+    			}
+    		});
+    	}
+    </script>
+</head>
+<body>
+
+#include("header.html")
+
+<div class="container" style="background-color: whitesmoke;">
+    <div class="row">
+        <form class="form-horizontal" role="form">
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="text-align: center; padding: 30px 10px 0px 10px">
+                <span style="font-size: 20px;">请认真检查商品基本信息，确保正确！</span>
+                <hr style="background-color: #aaaaaa; height: 1px; border: 0px"/>
+            </div>
+            
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="text-align: right; padding: 10px;">
+                <label>请选择批次：</label>
+            </div>
+            <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="padding: 10px;">
+                <select id="batchname" class="form-control">
+                	#if(batchname == null)
+                	#else
+                		<option value="#(batchname)">#(batchname)</option>
+                	#end
+                </select>
+            </div>
+            
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="text-align: right; padding: 10px;">
+                <label>请输入货号：</label>
+            </div>
+            <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="padding: 10px;">
+                <input type="text" id="goodsserial" value="#(goodsserial)" class="form-control" onkeypress="if(event.keyCode==13){this.blur();}" onblur="queryByBatchAndSerial()" data-provide="typeahead" autocomplete="off" placeholder="输入货号或批次的开始字母，系统会自动下拉提示."/>
+            </div>
+            
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="text-align: right; padding: 10px;">
+                <label>请确认品名：</label>
+            </div>
+            <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="padding: 10px;">
+                <input type="text" id="goodsname" class="form-control" readonly/>
+            </div>
+            
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="text-align: right; padding: 10px;">
+                <label>请确认售价：</label>
+            </div>
+            <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="padding: 10px;">
+                <input type="text" id="unitprice" class="form-control" readonly/>
+            </div>
+            
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="text-align: right; padding: 10px;">
+                <label>请输入条码：</label>
+            </div>
+            <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="padding: 10px;">
+                <input type="text" id="barcode" class="form-control" onkeypress="if(event.keyCode==13){inputBarcode();}"/>
+            </div>
+
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="text-align: right; padding: 10px;">
+                <label>请输入尺码：</label>
+            </div>
+            <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="padding: 10px;">
+                <input type="text" id="inputsize" class="form-control" onkeypress="if(event.keyCode==13){this.blur();}" onblur="inputSize()" placeholder="请务必将尺码以英文短线(-)分隔开，如: 60-70-80-90"/>
+            </div>
+
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="text-align: right; padding: 10px;">
+                <label>请输入数量：</label>
+            </div>
+            <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="padding: 10px;">
+                <input type="text" id="quantity" class="form-control" onkeypress="if(event.keyCode==13){inputQuantity();}" placeholder="请输入商品数量（只能为数字），数量*尺码个数=本批次商品总数量"/>
+            </div>
+            
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="text-align: right; padding: 10px;">
+                <label>请选择品类：</label>
+            </div>
+            <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="padding: 10px;">
+                <select id="goodstype" class="form-control">
+                	<option value="衣服">衣服</option>
+                	<option value="裤子">裤子</option>
+                	<option value="鞋袜">鞋袜</option>
+                	<option value="套装">套装</option>
+                	<option value="礼盒">礼盒</option>
+                	<option value="床品">床品</option>
+                	<option value="用品">用品</option>
+                	<option value="其它">其它</option>
+                </select>
+            </div>
+            
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="text-align: right; padding: 10px;">
+                <label>操作提示信息：</label>
+            </div>
+            <div class="col-lg-5 col-md-5 col-sm-5 col-xs-5" style="padding: 10px;">
+                <input type="text" id="message" class="form-control" readonly style="color: red"/>
+            </div>
+        </form>
+        <form class="form-inline">
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="text-align: center; padding: 30px;">
+                <input type="button" class="btn-primary form-control" value="确认入库" onclick="confirmStore()" style="width: 300px;"/>
+            </div>
+        </form>
+    </div>
+    
+    <div class="row" id="storelist">
+    	<div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="margin: 20px 0;">
+    		本批次入库信息确认，一旦确认入库成功后，将显示本批次的所有入库信息，以便于进行二次确认，请勿重复入库。
+    	</div>
+    	<div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+    		<table class="table table-striped">
+    			<thead style="font-weight: bold; background-color: #333; color: #eee;">
+    				<tr>
+    					<td>唯一编号</td>
+    					<td>批次名称</td>
+    					<td>商品条码</td>
+    					<td>货号/编码</td>
+    					<td>商品名称</td>
+    					<td>商品尺码</td>
+    					<td>数量</td>
+    					<td>单价</td>
+    					<td>入库员</td>
+    				</tr>
+    			</thead>
+    			<tbody id="storeinfo"></tbody>
+    		</table>
+    	</div>
+    </div>
+</div>
+
+#include("footer.html")
+
+</body>
+</html>

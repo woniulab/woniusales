@@ -1,0 +1,76 @@
+<script type="text/javascript" src="#(basePath)/library/js/bootbox.min.js"></script>
+<script>
+	// 将本函数放置于header文件中，这样可以给其它页面使用
+	function showAlert(headline, content) {
+		bootbox.alert({title: headline, message: content, className: 'mydialog', size: 'small'});
+	}
+</script>
+
+<div class="navbar-default header">
+    <div class="container" style="padding: 0px">
+        <div class="row">
+            <div class="col-lg-4 col-md-4 col-sm-4 col-xs-4" style="margin: 10px 0px;">
+                <a href="#(basePath)/"><img src="#(basePath)/image/logo.png"></a>
+            </div>
+            <div class="col-lg-8 col-md-8 col-sm-8 col-xs-8 visible-lg-block visible-md-block visible-sm-block">
+                <div style="width: 400px; text-align: right; float:right; margin-top: 5px; color: purple;">
+                <h2>成都市孵化园旗舰店</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="navbar navbar-default navbar-inverse" role="navigation" style="margin-bottom: 10px; border-top: solid 2px orangered">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">菜单</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="#" style="color: white">快捷导航</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+                <li><a href="sell">销售出库</a></li>
+                #if(session != null && session.role == "admin")
+                	<li><a href="goods">批次管理</a></li>
+                #end
+                <li><a href="store">商品入库</a></li>
+                <li><a href="query">库存查询</a></li>
+                <li><a href="customer">会员管理</a></li>
+                <li><a href="report">销售报表</a></li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+                #if(session == null || session.islogin!="true")
+                	<li><a href="#">尚未登录</a></li>
+                #else
+                	<li><a href="#">#(session.username)&nbsp;&nbsp;#(session.realname)</a></li>
+                	<li><a href="#(basePath)/user/logout">注销</a></li>
+            	#end
+                <li><a href="#" data-toggle="modal" data-target="#weCode" style="padding-right: 0px">微信</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!--打开微信扫码-->
+<div class="modal fade" id="weCode" tabindex="-1" role="dialog" aria-labelledby="weCodeLabel" data-backdrop="false">
+    <div class="modal-dialog" role="document" style="width: 400px;">
+        <div class="modal-content" style="padding: 0px 20px;">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="weCodeLabel">感谢加微信</h4>
+            </div>
+            <div class="modal-body">
+                <img src="#(basePath)/image/wecode.jpg" width="300px"/>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary">注册</button>
+            </div>
+        </div>
+    </div>
+</div>

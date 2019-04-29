@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+    <title>蜗牛进销存-首页</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/bootstrap.css"/>
+    <link rel="stylesheet" type="text/css" href="#(basePath)/library/css/sitemain.css"/>
+    <script type="text/javascript" src="#(basePath)/library/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="#(basePath)/library/js/bootstrap.js"></script>
+    
+    <script>
+	    function getVerifyCode() {
+	    	$('#logincode').attr('src','#(basePath)/vcode?' + Math.random());
+	    }
+	
+	    function doLogin(event) {
+	    	var param = "username=" + $("#username").val() +
+	    	            "&password=" + $("#password").val() +
+	    	            "&verifycode=" + $("#verifycode").val();
+	    	if (event == "null" || event.keyCode == 13) {
+	    		$.post("#(basePath)/user/login", param, function(data) {
+	    			  if (data == "login-pass") {
+	    				  location.href = "sell";
+	    			  }
+	    			  else if (data == "login-fail") {
+	    				  showAlert("错误提示", "登录失败，请重新登录.");
+	    				  $("#username").focus();
+	    			  }
+	    			  else if (data == "vcode-error"){
+	    				  showAlert("错误提示", "验证码失效，请重新输入.");
+	    				  getVerifyCode();
+	    				  $("#verifycode").focus();
+	    			  }
+	    			  else {
+	    				  showAlert("错误提示", "未知错误，请联系管理员.");
+	    			  }
+	    		});
+	    	}
+	    }
+    </script>
+</head>
+<body>
+
+#include("header.html")
+
+<div class="container" style="background-color: whitesmoke; background-image:url('#(basePath)/image/background.jpg'); background-size:cover;">
+    <div class="row">
+        <form class="form-inline">
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="text-align: center; padding: 30px 10px 0px 10px">
+                <span style="font-size: 22px; font-weight: bold;">你还没有登录，请先登录。</span>
+                <hr style="background-color: #aaaaaa; height: 1px; border: 0px"/>
+            </div>
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="text-align: center; padding: 10px;">
+                <label for="username">请输用户名：</label>
+                <input type="text" id="username" class="form-control"/>
+            </div>
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="text-align: center; padding: 10px;">
+                <label for="password">请输入密码：</label>
+                <input type="password" id="password" class="form-control"/>
+            </div>
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="text-align: center; padding: 10px;">
+                <label for="verifycode">图片验证码：</label>
+                <input type="text" id="verifycode" class="form-control" onkeypress="doLogin(event)"/>
+            </div>
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="text-align: center; padding: 0px;">
+                <label onclick="getVerifyCode()" style="cursor: pointer;">看不清，换一张：</label>
+                <img src="#(basePath)/vcode" id="logincode" onclick="getVerifyCode()" />
+            </div>
+            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12" style="text-align: center; padding: 30px;">
+                <button type="button" class="form-control btn-primary" onclick="doLogin('null')" style="width: 300px;"><span class="glyphicon glyphicon-user"></span> 登录</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+#include("footer.html")
+
+</body>
+</html>
