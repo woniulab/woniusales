@@ -21,4 +21,6 @@
 
 <img src="https://raw.githubusercontent.com/woniulab/woniusales/master/WebRoot/image/sell.png"/>
 
-WoniuSales项目网址： https://github.com/woniulab/woniusales &nbsp;&nbsp;&nbsp;&nbsp; 蜗牛学院官网：http://www.woniuxy.com
+WoniuSales项目网址： https://github.com/woniulab/woniusales 
+
+蜗牛学院：http://www.woniuxy.com &nbsp;&nbsp;&nbsp;&nbsp;  蜗牛笔记：http://www.woniuxy.com/note
